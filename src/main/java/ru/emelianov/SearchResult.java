@@ -2,13 +2,12 @@ package ru.emelianov;
 
 import java.util.List;
 
-public class AirportSearchResult {
-
+public class SearchResult {
     private String search;
     private List<Integer> result;
     private long time;
 
-    public AirportSearchResult(String search, List<Integer> result, long time) {
+    public SearchResult(String search, List<Integer> result, long time) {
         this.search = search;
         this.result = result;
         this.time = time;

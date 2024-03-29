@@ -3,31 +3,23 @@ package ru.emelianov;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
-public class CSVReader {
+public class CSVReader implements DataReader {
+    private static final TreeCollector collector = new BasicTreeCollector();
 
-    public static List<Airport> read(String filePath) throws IOException {
-        List<Airport> airports = new ArrayList<>();
+    public TreeNode readLine(String filePath, int indexColumnId) throws IOException {
+        TreeNode tree = new TreeNode();
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(",");
-
-                if (parts.length >= 4) {
-                    String name = parts[1].trim();
-                    String code = parts[4].trim();
-                    String city = parts[2].trim();
-                    String country = parts[3].trim();
-
-                    Airport airport = new Airport(name, code, city, country);
-                    airports.add(airport);
-                }
+                int valueIndex = Integer.parseInt(parts[0].trim().replace("\"", ""));
+                String value = parts[indexColumnId].trim().replace("\"", "");
+                collector.collect(tree, value, valueIndex);
             }
         }
 
-        return airports;
+        return tree;
     }
 }

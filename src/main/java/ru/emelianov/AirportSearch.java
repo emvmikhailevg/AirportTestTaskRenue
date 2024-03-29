@@ -1,5 +1,7 @@
 package ru.emelianov;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
@@ -24,7 +26,7 @@ public class AirportSearch {
             String[] parts = userInput.split(" ", 2);
 
             if (parts.length != 2) {
-                System.err.println("Неправильный формат ввода.");
+                System.err.println("Неправильный формат ввода");
                 continue;
             }
 
@@ -37,14 +39,14 @@ public class AirportSearch {
                     if (dataFile.exists() && dataFile.isFile() && dataFile.canRead()) {
                         dataFilePath = value;
                     } else {
-                        System.err.println("Файл с данными не найден или недоступен для чтения.");
+                        System.err.println("Файл с данными не найден или недоступен для чтения");
                     }
                     break;
                 case "--indexed-column-id":
                     try {
                         indexedColumnId = Integer.parseInt(value);
                     } catch (NumberFormatException e) {
-                        System.err.println("Неправильный формат номера колонки. Пожалуйста, введите целое число.");
+                        System.err.println("Неправильный формат номера колонки. Пожалуйста, введите целое число");
                     }
                     break;
                 case "--input-file":
@@ -52,72 +54,79 @@ public class AirportSearch {
                     if (inputFile.exists() && inputFile.isFile() && inputFile.canRead()) {
                         inputFilePath = value;
                     } else {
-                        System.err.println("Файл с входными строками не найден или недоступен для чтения.");
+                        System.err.println("Файл с входными строками не найден или недоступен для чтения");
                     }
                     break;
                 case "--output-file":
                     outputFilePath = value;
                     break;
                 default:
-                    System.err.println("Неизвестный аргумент командной строки.");
+                    System.err.println("Неизвестный аргумент командной строки");
                     break;
             }
         }
+
+        long startCountInitTime = System.currentTimeMillis();
 
         scanner.close();
 
-        List<Airport> airports = CSVReader.read(dataFilePath);
+        TreeNode treeNode = new CSVReader().readLine(dataFilePath, indexedColumnId);
 
-        List<String> inputStrings = InputFileReader.read(inputFilePath);
+        long stopCountInitTime = System.currentTimeMillis();
+        long initTime = stopCountInitTime - startCountInitTime;
 
-        List<AirportSearchResult> searchResults = new ArrayList<>();
+        List<SearchResult> result = new ArrayList<>();
 
-        for (String inputString : Objects.requireNonNull(inputStrings)) {
-            List<Integer> matchingIndexes = performSearch(airports, indexedColumnId, inputString);
-            long searchTime = calculateSearchTime(airports, indexedColumnId, inputString);
-            AirportSearchResult result = new AirportSearchResult(inputString, matchingIndexes, searchTime);
-            searchResults.add(result);
+        try (BufferedReader reader = new BufferedReader(new FileReader(inputFilePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                long startSearchTime = System.currentTimeMillis();
+                List<Integer> additionalIndexes;
+                String input = line.trim();
+                TreeNode fullWordResultNode = performSearch(treeNode, input);
+
+                if (fullWordResultNode != null) {
+                    additionalIndexes = performDFS(fullWordResultNode);
+                    long stopSearchTime = System.currentTimeMillis();
+                    long time = stopSearchTime - startSearchTime;
+                    result.add(new SearchResult(input, additionalIndexes, time));
+                }
+            }
         }
 
-        JSONConverter.convert(outputFilePath, searchResults);
+        ConversionData conversionData = new ConversionData(initTime, result);
+        Converter converter = new JSONConverter();
+        converter.convert(outputFilePath, conversionData);
     }
 
-    private static List<Integer> performSearch(List<Airport> airports, int indexedColumnId, String inputString) {
-        Map<String, List<Integer>> indexedMap = new HashMap<>();
-
-        for (int i = 0; i < airports.size(); i++) {
-            Airport airport = airports.get(i);
-            String property;
-            switch (indexedColumnId) {
-                case 1:
-                    property = airport.getName();
-                    break;
-                case 2:
-                    property = airport.getCode();
-                    break;
-                case 3:
-                    property = airport.getCity();
-                    break;
-                case 4:
-                    property = airport.getCountry();
-                    break;
-                default:
-                    throw new IllegalArgumentException("Некорректный индекс колонки");
+    private static TreeNode performSearch(TreeNode tree, String input) {
+        TreeNode currentNode = tree;
+        for (int i = 0; i < input.length(); i++) {
+            String symbol = String.valueOf(input.charAt(i));
+            if (currentNode != null) {
+                currentNode = currentNode.getChildes().getOrDefault(symbol, null);
+            } else {
+                return null;
             }
 
-            indexedMap.computeIfAbsent(property, k -> new ArrayList<>()).add(i + 1);
+            if (i == input.length() - 1 && currentNode != null) {
+                return currentNode;
+            }
         }
 
-        return indexedMap.getOrDefault(inputString, new ArrayList<>());
+        return null;
     }
 
-    private static long calculateSearchTime(List<Airport> airports, int indexedColumnId, String inputString) {
-        long startTime = System.nanoTime();
+    private static List<Integer> performDFS(TreeNode treeNode) {
+        List<Integer> indexes = new ArrayList<>();
+        if (!treeNode.getChildes().isEmpty()) {
+            for (TreeNode node : treeNode.getChildes().values()) {
+                indexes.addAll(performDFS(node));
+            }
+        } else {
+            return treeNode.getIndexes();
+        }
 
-        performSearch(airports, indexedColumnId, inputString);
-
-        long endTime = System.nanoTime();
-
-        return endTime - startTime;
+        return indexes;
     }
 }
