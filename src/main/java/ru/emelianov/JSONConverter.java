@@ -10,6 +10,7 @@ import java.util.*;
 
 public class JSONConverter implements Converter {
 
+    @Override
     public void convert(String outputFilePath, ConversionData conversionData) {
         Map<String, Object> result = new LinkedHashMap<>();
         List<Map<String, Object>> sortedResults = new ArrayList<>();

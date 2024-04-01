@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class CSVReader implements DataReader {
+
     private static final TreeCollector collector = new BasicTreeCollector();
 
     public TreeNode readLine(String filePath, int indexColumnId) throws IOException {

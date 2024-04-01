@@ -66,9 +66,9 @@ public class AirportSearch {
             }
         }
 
-        long startCountInitTime = System.currentTimeMillis();
-
         scanner.close();
+
+        long startCountInitTime = System.currentTimeMillis();
 
         TreeNode treeNode = new CSVReader().readLine(dataFilePath, indexedColumnId);
 

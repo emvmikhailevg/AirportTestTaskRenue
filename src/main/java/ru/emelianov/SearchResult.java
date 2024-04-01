@@ -3,6 +3,7 @@ package ru.emelianov;
 import java.util.List;
 
 public class SearchResult {
+
     private String search;
     private List<Integer> result;
     private long time;
